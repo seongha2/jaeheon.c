@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>00의 아이폰</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        
+        /* 아이폰 프레임 */
+        #phone {
+            width: 100%; max-width: 414px; height: 100%; max-height: 896px;
+            background: url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000&auto=format&fit=crop') no-repeat center center/cover;
+            position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* 비밀번호 입력 화면 (최상단) */
+        #password-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 30; color: white; padding: 20px; transition: opacity 0.5s ease;
+        }
+        .pass-dots { display: flex; gap: 15px; margin: 20px 0 40px 0; }
+        .dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; background: transparent; transition: 0.2s; }
+        .dot.active { background: white; }
+        
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 260px; max-width: 100%; }
+        .key {
+            width: 75px; height: 75px; border-radius: 50%; background: rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer;
+            backdrop-filter: blur(10px); user-select: none; transition: background 0.2s; margin: 0 auto;
+        }
+        .key:active { background: rgba(255,255,255,0.4); }
+        .pass-error { color: #ff453a; margin-top: 15px; font-size: 0.9rem; height: 20px; }
+
+        /* 잠금화면 */
+        #lock-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.2); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 60px 20px 40px 20px; z-index: 10; transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+        .lock-time { color: white; text-align: center; }
+        .lock-time h1 { font-size: 5rem; font-weight: 300; }
+        .lock-time p { font-size: 1.2rem; margin-top: 5px; }
+        
+        .notification {
+            background: rgba(255, 255, 255, 0.25); width: 100%; border-radius: 16px; padding: 15px; color: white; backdrop-filter: blur(10px);
+        }
+        .notification h4 { font-size: 0.9rem; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .notification p { font-size: 0.95rem; }
+
+        .unlock-text { color: white; font-size: 0.9rem; letter-spacing: 1px; animation: pulse 1.5s infinite; cursor: pointer; }
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+        /* 홈 화면 */
+        .home-header { padding-top: 50px; display: flex; justify-content: space-around; width: 100%; }
+        .widget { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); width: 42%; border-radius: 20px; padding: 15px; color: white; font-size: 0.9rem; }
+        
+        .app-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 10px; padding: 20px; text-align: center;
+        }
+        .app-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .app-icon {
+            width: 60px; height: 60px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 5px; transition: transform 0.1s;
+        }
+        .app-icon:active { transform: scale(0.9); }
+        .app-name { color: white; font-size: 0.75rem; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
+        /* 독 바 */
+        .dock {
+            background: rgba(255,255,255,0.2); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            margin: 0 15px 20px 15px; border-radius: 30px; padding: 10px; display: flex; justify-content: space-around; align-items: center;
+        }
+
+        /* 팝업 모달 */
+        #modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white;
+            z-index: 20; display: none; flex-direction: column;
+        }
+        .modal-header { background: #f7f7f7; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; font-weight: bold; }
+        .modal-close { color: #007aff; cursor: pointer; font-size: 1rem; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; background: #fff; }
+    </style>
+</head>
+<body>
+
+<div id="phone">
+    <!-- 비밀번호 입력 화면 -->
+    <div id="password-screen">
+        <h3 style="font-weight: 400; margin-bottom: 10px;">암호 입력</h3>
+        <p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 10px;">힌트: 0928</p>
+        <div class="pass-dots">
+            <div class="dot" id="dot-0"></div>
+            <div class="dot" id="dot-1"></div>
+            <div class="dot" id="dot-2"></div>
+            <div class="dot" id="dot-3"></div>
+        </div>
+        <div class="keypad">
+            <div class="key" onclick="pressKey('1')">1</div>
+            <div class="key" onclick="pressKey('2')">2</div>
+            <div class="key" onclick="pressKey('3')">3</div>
+            <div class="key" onclick="pressKey('4')">4</div>
+            <div class="key" onclick="pressKey('5')">5</div>
+            <div class="key" onclick="pressKey('6')">6</div>
+            <div class="key" onclick="pressKey('7')">7</div>
+            <div class="key" onclick="pressKey('8')">8</div>
+            <div class="key" onclick="pressKey('9')">9</div>
+            <div style="visibility: hidden;"></div>
+            <div class="key" onclick="pressKey('0')">0</div>
+            <div class="key" onclick="pressKey('del')" style="font-size: 1.2rem;">⌫</div>
+        </div>
+        <div class="pass-error" id="pass-error"></div>
+    </div>
+
+    <!-- 잠금화면 -->
+    <div id="lock-screen" onclick="unlockPhone()">
+        <div class="lock-time">
+            <p id="date-text">10월 19일 월요일</p>
+            <h1 id="clock-text">13:30</h1>
+        </div>
+        <div style="width: 100%;">
+            <div class="notification">
+                <h4><span>💬 카카오톡</span> <span>지금</span></h4>
+                <p><b>여자친구 이름:</b> 야 어디야? 내 폰 보지 말고 조용히 해라 진짜 ㅋㅋ</p>
+            </div>
+        </div>
+        <p class="unlock-text">화면을 터치하여 잠금 해제</p>
+    </div>
+
+    <!-- 홈 화면 내용 -->
+    <div>
+        <div class="home-header">
+            <div class="widget">
+                <p><b>날씨</b></p>
+                <h2>18°C</h2>
+                <p>맑음 / 데이트하기 좋은 날</p>
+            </div>
+            <div class="widget">
+                <p><b>📅 D-Day</b></p>
+                <h3 style="margin-top: 5px;">우리가 만난 지</h3>
+                <p style="font-size: 1.2rem; font-weight: bold;">+365일 ❤️</p>
+            </div>
+        </div>
+
+        <!-- 앱 그리드 -->
+        <div class="app-grid">
+            <div class="app-item" onclick="openApp('전화', '부재중 전화: 여자친구 (12통)<br><br>최근 통화 기록이 전부 여자친구로 도배되어 있습니다.')">
+                <div class="app-icon" style="background: #34c759;">📞</div>
+                <span class="app-name">전화</span>
+            </div>
+            <div class="app-item" onclick="openApp('메시지', '<b>[여자친구]</b><br>- 내 사진 잘 간직하고 있지?<br>- 딴 짓 하면 죽는다<br>- 사랑해 ❤️')">
+                <div class="app-icon" style="background: #34c759; background: linear-gradient(135deg, #32d74b, #28cd41);">💬</div>
+                <span class="app-name">메시지</span>
+            </div>
+            <div class="app-item" onclick="openApp('갤러리', '📱 <b>갤러리 첫 번째 사진:</b><br><br><div style=\'background:#eee; padding:30px; text-align:center; border-radius:10px; margin-top:10px;\'>[사진: 여자친구 얼굴 셀카 사진이 배경화면으로 설정되어 있음]</div>')">
+                <div class="app-icon" style="background: linear-gradient(135deg, #ff9500, #ffcc00);">🖼️</div>
+                <span class="app-name">갤러리</span>
+            </div>
+            <div class="app-item" onclick="openApp('연락처', '<b>즐겨찾기 1순위</b><br>❤️ 여자친구 (내 사랑)<br><br><b>그 외 연락처</b><br>- 엄마<br>- 김철수 (친구)')">
+                <div class="app-icon" style="background: #ff3b30;">👤</div>
+                <span class="app-name">연락처</span>
+            </div>
+            <div class="app-item" onclick="openApp('카카오톡', '<b>[단톡방: 우리들의 비밀 모임]</b><br><b>친구A:</b> 야 너 요즘 여자친구한테 잡혀 산다며?<br><b>남자캐릭터:</b> 아니거든? 존중해주는 거거든?<br><b>친구B:</b> ㅋㅋㅋㅋㅋ 눈 떨리고 있네')">
+                <div class="app-icon" style="background: #fee500; color: #3c1e1e;">💬</div>
+                <span class="app-name">카카오톡</span>
+            </div>
+            <div class="app-item" onclick="openApp('캘린더', '📌 <b>이번 주 일정</b><br>- 수요일: 여자친구랑 1주년 기념일 (선물 필수)<br>- 주말: 데이트 데이트 데이트')">
+                <div class="app-icon" style="background: #ff2d55;">📅</div>
+                <span class="app-name">캘린더</span>
+            </div>
+            <div class="app-item" onclick="openApp('메모장', '📝 <b>비밀 메모</b><br><br>1. 여자친구 화났을 때 대처법<br>- 일단 무조건 사과하기<br>- 간식 사주기<br>- 예쁘다고 10번 말하기')">
+                <div class="app-icon" style="background: #ffcc00;">📝</div>
+                <span class="app-name">메모장</span>
+            </div>
+            <div class="app-item" onclick="openApp('사파리', '🌐 <b>방범 기록</b><br>- \'여친 선풍기 추천\'<br>- \'여성용 지갑 브랜드 순위\'<br>- \'살려주세요\'')">
+                <div class="app-icon" style="background: linear-gradient(135deg, #007aff, #5856d6);">🧭</div>
+                <span class="app-name">사파리</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 독(Dock)바 -->
+    <div class="dock">
+        <div class="app-item" onclick="openApp('전화', '부재중 전화: 여자친구')">
+            <div class="app-icon" style="background: #34c759; width: 50px; height: 50px; font-size: 24px;">📞</div>
+        </div>
+        <div class="app-item" onclick="openApp('메시지', '메시지 내용 생략')">
+            <div class="app-icon" style="background: #32d74b; width: 50px; height: 50px; font-size: 24px;">💬</div>
+        </div>
+        <div class="app-item" onclick="openApp('사파리', '사파리 내용')">
+            <div class="app-icon" style="background: #007aff; width: 50px; height: 50px; font-size: 24px;">🧭</div>
+        </div>
+        <div class="app-item" onclick="openApp('카카오톡', '카톡 내용')">
+            <div class="app-icon" style="background: #fee500; color: #3c1e1e; width: 50px; height: 50px; font-size: 24px;">💬</div>
+        </div>
+    </div>
+
+    <!-- 앱 실행 모달 창 -->
+    <div id="modal">
+        <div class="modal-header">
+            <span id="modal-title">앱 이름</span>
+            <span class="modal-close" onclick="closeApp()">닫기 ✕</span>
+        </div>
+        <div class="modal-body" id="modal-content">
+            내용이 들어갔습니다.
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentInput = "";
+    const correctPin = "0928";
+
+    function pressKey(num) {
+        const errorText = document.getElementById("pass-error");
+        errorText.innerText = "";
+
+        if (num === 'del') {
+            currentInput = currentInput.slice(0, -1);
+        } else if (currentInput.length < 4) {
+            currentInput += num;
+        }
+
+        updateDots();
+
+        if (currentInput.length === 4) {
+            if (currentInput === correctPin) {
+                // 비밀번호 맞음 -> 비밀번호창 페이드아웃
+                const passScreen = document.getElementById("password-screen");
+                passScreen.style.opacity = '0';
+                setTimeout(() => {
+                    passScreen.style.display = 'none';
+                }, 500);
+            } else {
+                // 틀림
+                errorText.innerText = "암호가 올바르지 않습니다.";
+                setTimeout(() => {
+                    currentInput = "";
+                    updateDots();
+                    errorText.innerText = "";
+                }, 800);
+            }
+        }
+    }
+
+    function updateDots() {
+        for (let i = 0; i < 4; i++) {
+            const dot = document.getElementById(`dot-${i}`);
+            if (i < currentInput.length) {
+                dot.classList.add("active");
+            } else {
+                dot.classList.remove("active");
+            }
+        }
+    }
+
+    // 시간 실시간 표시
+    function updateTime() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('clock-text').innerText = `${hours}:${minutes}`;
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // 잠금해제 함수
+    function unlockPhone() {
+        const lockScreen = document.getElementById('lock-screen');
+        lockScreen.style.transform = 'translateY(-100%)';
+        lockScreen.style.opacity = '0';
+        setTimeout(() => {
+            lockScreen.style.display = 'none';
+        }, 500);
+    }
+
+    // 앱 열기 함수
+    function openApp(appName, content) {
+        document.getElementById('modal-title').innerText = appName;
+        document.getElementById('modal-content').innerHTML = content;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    // 앱 닫기 함수
+    function closeApp() {
+        document.getElementById('modal').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
